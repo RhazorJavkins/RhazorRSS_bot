@@ -17,6 +17,33 @@ def get_ihsg_report():
     # Mengambil list saham (pastikan list all_saham sudah terdefinisi/di-scrap)
     # Sebagai contoh, kita gunakan list yang sudah dibersihkan dengan akhiran .JK
     # list_saham = [...] 
+        url = 'https://id.wikipedia.org/wiki/Daftar_perusahaan_yang_tercatat_di_Bursa_Efek_Indonesia'
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+    }
+    
+    response = requests.get(url, headers=headers)
+    tables = pd.read_html(response.text)
+    
+    # Cari tabel yang mengandung kolom 'Kode' secara otomatis
+    df_saham = None
+    for t in tables:
+        if 'Kode' in t.columns:
+            df_saham = t
+            break
+    
+    if df_saham is not None:
+        # 6. Tambahkan suffix .JK sesuai standar yfinance
+        list_saham = [str(ticker) + '.JK' for ticker in df_saham['Kode'].tolist()]
+    
+    # Versi perbaikan untuk membersihkan 'BEI: '
+    if df_saham is not None:
+        # 1. Ambil kolom Kode
+        raw_tickers = df_saham['Kode'].astype(str).tolist()
+        
+        # 2. Bersihkan 'BEI: ' dan tambahkan '.JK'
+        # Kita gunakan .replace() agar lebih aman
+        list_saham = [t.replace('BEI: ', '') + '.JK' for t in raw_tickers]
 
     # 2. Download Data Massal (Harga & Volume)
     # Ambil periode 60 hari agar perhitungan MA 20 dan tren 3 hari akurat
