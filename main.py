@@ -18,9 +18,7 @@ def get_ihsg_report():
     # Sebagai contoh, kita gunakan list yang sudah dibersihkan dengan akhiran .JK
     # list_saham = [...] 
         url = 'https://id.wikipedia.org/wiki/Daftar_perusahaan_yang_tercatat_di_Bursa_Efek_Indonesia'
-    headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-    }
+    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'}
     
     response = requests.get(url, headers=headers)
     tables = pd.read_html(response.text)
