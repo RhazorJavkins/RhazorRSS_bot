@@ -34,10 +34,25 @@ def get_ihsg_report():
     # Gunakan .dropna() agar saham tidak aktif tidak muncul
     avg_vol = volume.tail(20).mean().dropna().sort_values(ascending=False).head(5)
 
-    # --- ANALISIS 2: Top 5 Gainers (Bersihkan NaN) ---
-    log_returns = np.log(adj_close / adj_close.shift(1))
-    # Ambil baris terakhir, buang NaN, lalu urutkan
-    top_gainers = log_returns.iloc[-1].dropna().sort_values(ascending=False).head(5)
+    # --- ANALISIS 2: Top 5 Gainers (Filter Volume > 0 & Bersihkan NaN) ---
+    # 1. Ambil data volume hari terakhir
+    last_volume = volume.iloc[-1]
+    
+    # 2. Filter hanya ticker yang hari ini benar-benar ada transaksi (Volume > 0)
+    # Ini adalah 'kunci' agar saham gocap atau suspen tidak masuk laporan
+    active_tickers = last_volume[last_volume > 0].index
+    
+    # 3. Hitung Log Return hanya untuk saham yang aktif tersebut
+    # Rumus: ln(Pt / Pt-1)
+    active_adj_close = adj_close[active_tickers]
+    log_returns = np.log(active_adj_close / active_adj_close.shift(1))
+    
+    # 4. Ambil baris terakhir, bersihkan NaN dan nilai tak hingga (inf), lalu urutkan
+    top_gainers = (log_returns.iloc[-1]
+                   .replace([np.inf, -np.inf], np.nan) # Jaga-jaga jika ada pembagian nol
+                   .dropna() 
+                   .sort_values(ascending=False)
+                   .head(5))
 
     # --- ANALISIS 3: Strategi MA 20 ---
     ma20 = adj_close.rolling(window=20).mean()
