@@ -9,63 +9,53 @@ TOKEN = os.getenv('TELEGRAM_TOKEN')
 CHAT_ID = os.getenv('TELEGRAM_CHAT_ID')
 
 def send_report(pesan):
-    """Mengirim pesan ke Telegram menggunakan library requests."""
     url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
     payload = {"chat_id": CHAT_ID, "text": pesan, "parse_mode": "Markdown"}
     try:
         requests.post(url, data=payload)
     except Exception as e:
-        print(f"Gagal mengirim laporan ke Telegram: {e}")
+        print(f"Gagal kirim Telegram: {e}")
 
 def get_ihsg_report():
-    # 2. Persiapan Daftar Saham dari CSV
+    # 2. Ambil List Saham
     try:
-        # Skrip ini menggabungkan pembacaan dari file CSV agar lebih efisien 
         df_list = pd.read_csv('list_saham.csv')
         list_saham = df_list['Ticker'].tolist()
-    except FileNotFoundError:
-        print("Error: File 'list_saham.csv' tidak ditemukan di repositori.")
+    except Exception:
+        print("File list_saham.csv tidak ditemukan!")
         return
 
-    # 3. Download Data Massal menggunakan threading [cite: 728, 767]
-    data = yf.download(list_saham, period="60d", threads=True, group_by='column')
-    
-    if data.empty:
-        print("Gagal mengambil data dari Yahoo Finance.")
-        return
-
-    # Gunakan kolom Adj Close untuk akurasi riset [cite: 886]
+    # 3. Download Data (1 hari)
+    data = yf.download(list_saham, period="1d", threads=True, group_by='column')
     adj_close = data['Adj Close']
     volume = data['Volume']
 
-    # --- ANALISIS 1: 5 Saham Volume Terbanyak (Rata-rata 1 Bulan) ---
-    avg_vol = volume.tail(20).mean().sort_values(ascending=False).head(5)
+    # --- ANALISIS 1: Top 5 Volume (Bersihkan NaN) ---
+    # Gunakan .dropna() agar saham tidak aktif tidak muncul
+    avg_vol = volume.tail(20).mean().dropna().sort_values(ascending=False).head(5)
 
-    # --- ANALISIS 2: 5 Saham Kenaikan Tertinggi (Daily Log Return) ---
-    # Log return dihitung secara vektorisasi agar cepat [cite: 881]
+    # --- ANALISIS 2: Top 5 Gainers (Bersihkan NaN) ---
     log_returns = np.log(adj_close / adj_close.shift(1))
-    top_gainers = log_returns.iloc[-1].sort_values(ascending=False).head(5)
+    # Ambil baris terakhir, buang NaN, lalu urutkan
+    top_gainers = log_returns.iloc[-1].dropna().sort_values(ascending=False).head(5)
 
-    # --- ANALISIS 3: Strategi MA 20 (Trending Up & Approaching) ---
+    # --- ANALISIS 3: Strategi MA 20 ---
     ma20 = adj_close.rolling(window=20).mean()
-    
-    # Syarat A: MA 20 naik selama 3 hari terakhir [cite: 882]
     ma_trending_up = (ma20.iloc[-1] > ma20.iloc[-2]) & (ma20.iloc[-2] > ma20.iloc[-3])
-    
-    # Syarat B: Harga mendekati MA 20 [cite: 883]
     dist_pct = ((adj_close - ma20) / ma20) * 100
     approaching_ma = dist_pct.abs().iloc[-1] < dist_pct.abs().iloc[-2]
     
-    ma_signals = adj_close.columns[ma_trending_up & approaching_ma][:5]
+    # Ambil ticker yang memenuhi syarat dan tidak NaN
+    ma_signals = adj_close.columns[ma_trending_up & approaching_ma].dropna()[:5]
 
-    # 4. Format Pesan Telegram
+    # 4. Format Pesan
     report = "🚀 *LAPORAN HARIAN IHSG*\n\n"
     
-    report += "📊 *Top 5 Volume (Avg 1Mo):*\n"
+    report += "📊 *Top 5 Volume (Avg 1d):*\n"
     for ticker, vol in avg_vol.items():
         report += f"- {ticker}: {vol:,.0f}\n"
     
-    report += "\n📈 *Top 5 Gainers (Daily Log Return):*\n"
+    report += "\n📈 *Top 5 Gainers (Log Return):*\n"
     for ticker, ret in top_gainers.items():
         report += f"- {ticker}: {ret*100:.2f}%\n"
     
