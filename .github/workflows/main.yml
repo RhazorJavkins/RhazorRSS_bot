@@ -1,0 +1,31 @@
+name: Bot Laporan IHSG Harian
+
+on:
+  schedule:
+    # Berjalan otomatis setiap Senin-Jumat jam 16:15 WIB (09:15 UTC)
+    - cron: '15 9 * * 1-5' 
+  workflow_dispatch: # Memungkinkan Anda menjalankan bot secara manual untuk tes
+
+jobs:
+  run-bot:
+    runs-on: ubuntu-latest # Menggunakan sistem operasi Linux terbaru
+    steps:
+      - name: Checkout kode
+        uses: actions/checkout@v3 # Mengambil kode dari repositori Anda
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+
+      - name: Install Dependencies
+        # Menginstall library yang dibutuhkan agar tidak error "No module named"
+        run: |
+          pip install yfinance pandas numpy requests lxml
+
+      - name: Jalankan Skrip Bot
+        env:
+          # Mengambil token rahasia dari GitHub Secrets agar aman dari pencurian
+          TELEGRAM_TOKEN: ${{ secrets.TELEGRAM_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: python main.py
