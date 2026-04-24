@@ -26,7 +26,7 @@ def get_ihsg_report():
         return
 
     # 3. Download Data (1 hari)
-    data = yf.download(list_saham, period="1d", threads=True, group_by='column')
+    data = yf.download(list_saham, period="30d", threads=True, group_by='column')
     adj_close = data['Adj Close']
     volume = data['Volume']
 
@@ -51,7 +51,7 @@ def get_ihsg_report():
     # 4. Format Pesan
     report = "🚀 *LAPORAN HARIAN IHSG*\n\n"
     
-    report += "📊 *Top 5 Volume (Avg 1d):*\n"
+    report += "📊 *Top 5 Volume (Avg 30d):*\n"
     for ticker, vol in avg_vol.items():
         report += f"- {ticker}: {vol:,.0f}\n"
     
