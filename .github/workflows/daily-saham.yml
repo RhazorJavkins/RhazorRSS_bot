@@ -1,0 +1,36 @@
+name: Analisis Saham Harian ke Telegram
+
+on:
+  schedule:
+    # Jalan setiap hari jam 16:15 WIB (09:15 UTC) -> setelah bursa IDX tutup (16:00 WIB)
+    # Format cron pakai UTC. Sesuaikan jamnya jika perlu.
+    - cron: "15 9 * * 1-5"   # Senin-Jumat saja (hari bursa)
+  workflow_dispatch: {}       # supaya bisa dijalankan manual lewat tombol "Run workflow"
+
+jobs:
+  jalankan-analisis:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Jalankan script analisis & kirim ke Telegram
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: python analisis_saham_telegram.py
+
+      - name: Upload hasil CSV sebagai artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: hasil-analisis-saham
+          path: hasil_analisis_saham.csv
