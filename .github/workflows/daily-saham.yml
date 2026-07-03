@@ -4,7 +4,7 @@ on:
   schedule:
     # Jalan setiap hari jam 16:15 WIB (09:15 UTC) -> setelah bursa IDX tutup (16:00 WIB)
     # Format cron pakai UTC. Sesuaikan jamnya jika perlu.
-    - cron: "15 9 * * 1-5"   # Senin-Jumat saja (hari bursa)
+    - cron: "45 9 * * 1-5"   # Senin-Jumat saja (hari bursa)
   workflow_dispatch: {}       # supaya bisa dijalankan manual lewat tombol "Run workflow"
 
 jobs:
